@@ -15,4 +15,4 @@ For a complete step-by-step explanation of the implementation, including:
 * Testing approaches
 * Future improvements
 
-📖 [Read the Full Implementation Guide](google.com)
+📖 [Read the Full Implementation Guide](https://github.com/swag-source/Midnight-Matching-Pennies/blob/main/%F0%9F%9A%80%20Midnight%20Matching%20Pennies.pdf)
