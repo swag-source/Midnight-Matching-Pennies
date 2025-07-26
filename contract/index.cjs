@@ -156,25 +156,25 @@ class Contract {
         if (!(typeof(contextOrig_0) === 'object' && contextOrig_0.originalState != undefined && contextOrig_0.transactionContext != undefined))
           __compactRuntime.type_error('revealCoin',
                                       'argument 1 (as invoked from Typescript)',
-                                      'MatchingPennies.compact line 102 char 1',
+                                      'MatchingPennies.compact line 103 char 1',
                                       'CircuitContext',
                                       contextOrig_0)
         if (!(player_0.buffer instanceof ArrayBuffer && player_0.BYTES_PER_ELEMENT === 1 && player_0.length === 32))
           __compactRuntime.type_error('revealCoin',
                                       'argument 1 (argument 2 as invoked from Typescript)',
-                                      'MatchingPennies.compact line 102 char 1',
+                                      'MatchingPennies.compact line 103 char 1',
                                       'Bytes<32>',
                                       player_0)
         if (!(typeof(coin_0) === 'number' && coin_0 >= 0 && coin_0 <= 2))
           __compactRuntime.type_error('revealCoin',
                                       'argument 2 (argument 3 as invoked from Typescript)',
-                                      'MatchingPennies.compact line 102 char 1',
+                                      'MatchingPennies.compact line 103 char 1',
                                       'Enum<Coin, heads, tails, undefined>',
                                       coin_0)
         if (!(salt_0.buffer instanceof ArrayBuffer && salt_0.BYTES_PER_ELEMENT === 1 && salt_0.length === 32))
           __compactRuntime.type_error('revealCoin',
                                       'argument 3 (argument 4 as invoked from Typescript)',
-                                      'MatchingPennies.compact line 102 char 1',
+                                      'MatchingPennies.compact line 103 char 1',
                                       'Bytes<32>',
                                       salt_0)
         const context = { ...contextOrig_0 };
@@ -202,7 +202,7 @@ class Contract {
         if (!(typeof(contextOrig_0) === 'object' && contextOrig_0.originalState != undefined && contextOrig_0.transactionContext != undefined))
           __compactRuntime.type_error('playMatchingPennies',
                                       'argument 1 (as invoked from Typescript)',
-                                      'MatchingPennies.compact line 143 char 1',
+                                      'MatchingPennies.compact line 144 char 1',
                                       'CircuitContext',
                                       contextOrig_0)
         const context = { ...contextOrig_0 };
