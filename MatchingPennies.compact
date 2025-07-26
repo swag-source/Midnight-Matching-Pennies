@@ -1,0 +1,182 @@
+import CompactStandardLibrary;
+
+enum Coin { heads, tails, undefined }
+enum State { unavailable, available }
+enum Result { player1_wins, player2_wins }
+enum Decision { undecided, decided }
+
+// Public attributes
+export ledger state: State;
+export ledger round: Counter;
+export ledger player1: Bytes<32>;
+export ledger player2: Bytes<32>;
+export ledger player1_score: Counter; // Counter Type to leverage *.increment(1) 
+export ledger player2_score: Counter; // Counter Type to leverage *.increment(1) 
+export ledger player1_commitment: Bytes<32>;
+export ledger player2_commitment: Bytes<32>;
+export ledger player1_decision: Decision;
+export ledger player2_decision: Decision;
+export ledger result: List<Bytes<32>>;
+
+// Private attributes
+ledger player1_coin_choice : Coin;
+ledger player2_coin_choice : Coin;
+ledger player1_revealed : Boolean;
+ledger player2_revealed : Boolean;
+
+constructor() {
+    state = State.available;
+    player1 = pad(32, "");
+    player2 = pad(32, "");
+    player1_commitment = pad(32, "");
+    player2_commitment = pad(32, "");
+    player1_decision = Decision.undecided;
+    player2_decision = Decision.undecided;
+}
+
+witness saltFunction(): Bytes<32>;
+
+/*
+    @param: 32 Byte user virtual address
+
+    Description: Allows players to join with their virtual address to the game.
+
+    Exceptions: No more than 2 players can join a game.
+*/
+export circuit joinGame(player: Bytes<32>): [] {
+    // Verify if function is callable
+    assert(state == State.available, "Lobby is full");
+    if (player1 == pad(32, "")) {
+        // No player 1
+        player1 = disclose(player);
+    } else {
+        assert(player2 == pad(32, ""), "Both player slots are filled");
+        // No player 2
+        player2 = disclose(player);
+        state = State.unavailable;
+    }
+}
+
+/*
+    Name: chooseCoin
+
+    @param: 32 Byte player's virutal address
+
+    @param: enum type to define chosen coin side
+
+    Description: once the lobby is full, each player should pick
+    a coin side. We leverage the `coinDecision` witness to allow players to commit their choice without revealing it. 
+    
+    Exceptions: We don't want to allow commitCoin function to be called when there's one or NO players.
+*/
+
+export circuit commitCoin(player : Bytes<32>, coin : Coin): [] {
+    // Verify if function is callable
+    assert(state == State.unavailable, "Cannot commit to a coin before the lobby is full");
+    // Verify if player is in the game (can be called by a player not in the game)
+    assert(player1 == disclose(player) || player2 == disclose(player), "Current player not in game");
+
+    // Verify if player has not already chosen a coin
+    if(player1 == disclose(player)) {
+        assert(player1_decision == Decision.undecided, "Player 1 has already chosen a coin");
+        const decision = coin;
+
+        // Adds randomness to hash commit.
+        const salt = saltFunction();
+        player1_decision = Decision.decided;
+
+        // We publicly disclose a commit, not the real decision value. Leverages Midnight's ZK utility.
+        player1_commitment = disclose(persistentCommit<Coin>(decision, salt));
+
+    } else if(player2 == disclose(player)) {
+        assert(player2_decision == Decision.undecided, "Player 2 has already chosen a coin");
+        const decision = coin;
+        
+        const salt = saltFunction();
+        player2_decision = Decision.decided;
+
+        // We publicly disclose a commit, not the real decision value. Leverages Midnight's utility.
+        player2_commitment = disclose(persistentCommit<Coin>(decision, salt));
+    }
+}
+
+export circuit revealCoin(player : Bytes<32>, coin : Coin, salt : Bytes<32>): [] {
+    // Verify if lobby is full
+    assert(state == State.unavailable, "Cannot reveal coin before the lobby is full");
+    // Verify if player is valid.
+    assert(player1 == disclose(player) || player2 == disclose(player), "Player not in game");
+
+    if(player1 == disclose(player)){
+        assert(!player1_revealed, "Player 1 has already revealed");
+
+        // Verify if commitments match
+        const expected = disclose(persistentCommit<Coin>(coin, salt));
+        assert(player1_commitment == expected, "Commitment mismatch, cannot reveal coin");
+
+        // They match, reveal coin.
+        player1_revealed = true;
+        player1_coin_choice = disclose(coin);
+
+    } else {
+        assert(!player2_revealed, "Player 2 has already revealed");
+
+        // Verify if commitments match
+        const expected = disclose(persistentCommit<Coin>(coin, salt));
+        assert(player2_commitment == expected, "Commitment mismatch, cannot reveal coin");
+
+        // They match, reveal coin.
+        player2_revealed = true;
+        player2_coin_choice = disclose(coin);
+    }
+}
+
+
+/*
+    Name: playMatchingPennies.
+
+    @Param: None.
+
+    Description: Implements the entire Matching Pennies logic. Checks all players have connected and made a commitment.
+
+    Exception: Can't play a match if both players haven't connected & haven't commited a decision.
+
+*/
+export circuit playMatchingPennies(): [] {
+    // Verify that both players have joined
+    assert(state == State.unavailable, "Cannot play game without 2 players");
+    
+    // Verify that both players have committed
+    assert(player1_decision == Decision.decided && player2_decision == Decision.decided, "Both players must commit before playing");
+    
+    // Verify that both players have revealed
+    assert(player1_revealed && player2_revealed, "Both players must reveal before determining winner");
+
+    // Compare the REVEALED choices
+    if(player1_coin_choice == player2_coin_choice) {
+        // Player 1 wins when both coins show the same side.
+        result.pushFront(player1);
+        player1_score.increment(1);
+    } else {
+        // Player 2 wins when coins show different sides.
+        result.pushFront(player2);
+        player2_score.increment(1);
+    }
+
+    // Increment round counter.
+    round.increment(1);
+
+    // Reset for new game. Preserving scores and round.
+    state = State.available;
+    player1 = pad(32, "");
+    player2 = pad(32, "");
+    player1_decision = Decision.undecided;
+    player2_decision = Decision.undecided;
+    player1_commitment = pad(32, "");
+    player2_commitment = pad(32, "");
+    
+    // Reset reveal state
+    player1_coin_choice = Coin.undefined;
+    player2_coin_choice = Coin.undefined;
+    player1_revealed = false;
+    player2_revealed = false;
+}
